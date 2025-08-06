@@ -5,6 +5,7 @@ export class CustomWorld extends World {
   browser?: Browser;
   page?: Page;
   browserType: string = 'chromium';
+  headless: boolean = false;
 
   constructor(options: IWorldOptions) {
     super(options);

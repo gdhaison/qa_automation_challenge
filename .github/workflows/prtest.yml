@@ -2,7 +2,7 @@ name: Run Tests on PR Create
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
 
 jobs:
   test:
@@ -20,5 +20,68 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
       - name: Run BDD tests (Chromium)
-        run: npm run test:bdd:chrome
+        run: npm run test:bdd:chrome:headless
+        continue-on-error: true
+
+      - name: Upload Cucumber HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-report
+          path: reports/chrome-report.html
+
+      - name: 📊 Extract test results from JSON report
+        id: summary
+        run: |
+          passed=$(jq '[.[] | .elements[] | select([.steps[].result.status] | all(. == "passed"))] | length' reports/chrome-report.json)
+          failed=$(jq '[.[] | .elements[] | select([.steps[].result.status] | any(. == "failed"))] | length' reports/chrome-report.json)
+
+          echo "passed=$passed" >> $GITHUB_OUTPUT
+          echo "failed=$failed" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Get Artifact ID
+        id: get_artifact
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const runId = context.runId;
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+
+            const artifact = artifacts.data.artifacts.find(a => a.name === "chrome-report");
+            if (!artifact) throw new Error("Artifact not found");
+            return artifact.id;
+
+      - name: Generate Cucumber Summary
+        run: |
+          echo "## 📝 Cucumber Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
+          echo "[📄 Download full HTML report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: 💬 Comment test result to PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        with:
+          script: |
+            const passed = process.env.PASSED || "${{ steps.summary.outputs.passed }}";
+            const failed = process.env.FAILED || "${{ steps.summary.outputs.failed }}";
+            const artifactId = "${{ steps.get_artifact.outputs.result }}";
+            const url = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${artifactId}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ Passed: ${passed}\n❌ Failed: ${failed}\n📄 [Full report available in Artifacts](${url})`
+            });
