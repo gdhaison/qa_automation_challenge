@@ -10,16 +10,17 @@ export async function launchBrowser(world: CustomWorld): Promise<Page> {
 
   const browserType = process.env.BROWSER || 'chromium';
   world.browserType = browserType; 
+  world.headless = process.env.HEADLESS === 'true' || false;
 
   switch (world.browserType) {
     case 'firefox':
-      browser = await firefox.launch({ headless: false });
+      browser = await firefox.launch({ headless: world.headless });
       break;
     case 'webkit':
-      browser = await webkit.launch({ headless: false });
+      browser = await webkit.launch({ headless: world.headless });
       break;
     default:
-      browser = await chromium.launch({ headless: false });
+      browser = await chromium.launch({ headless: world.headless });
   }
 
   const context = await browser.newContext();
