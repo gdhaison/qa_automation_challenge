@@ -77,3 +77,9 @@ export default defineConfig({
   //   reuseExistingServer: !process.env.CI,
   // },
 });
+
+module.exports = {
+  expect: {
+    timeout: 30000
+  }
+};

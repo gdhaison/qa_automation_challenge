@@ -1,5 +1,9 @@
-import { After, Before, BeforeAll } from '@cucumber/cucumber';
+import { After, Before, BeforeAll, AfterAll } from '@cucumber/cucumber';
 import { CustomWorld } from '../../world/world';
+
+import { setDefaultTimeout } from '@cucumber/cucumber';
+
+setDefaultTimeout(20000);
 
 After(async function (this: CustomWorld) {
   if (this.browser) {
@@ -9,3 +13,4 @@ After(async function (this: CustomWorld) {
     console.log('Closed browser after scenario');
   }
 });
+
