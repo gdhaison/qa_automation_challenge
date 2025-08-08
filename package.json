@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test:bdd:chrome": "cross-env BROWSER=chromium cucumber-js --format progress --format html:reports/chrome-report.html",
-    "test:bdd:firefox": "cross-env BROWSER=firefox cucumber-js --format progress --format html:reports/firefox-report.html",
-    "test:bdd:webkit": "cross-env BROWSER=webkit cucumber-js --format progress --format html:reports/webkit-report.html",
-    "test:bdd:chrome:headless": "cross-env BROWSER=chromium HEADLESS=true cucumber-js --format progress --format html:reports/chrome-report.html --format json:reports/chrome-report.json",
-    "test:bdd:firefox:headless": "cross-env BROWSER=firefox HEADLESS=true cucumber-js --format progress --format html:reports/firefox-report.html --format json:reports/firefox-report.json",
-    "test:bdd:webkit:headless": "cross-env BROWSER=webkit HEADLESS=true cucumber-js --format progress --format html:reports/webkit-report.html --format json:reports/webkit-report.json",
+    "test:bdd:chrome": "cross-env BROWSER=chromium cucumber-js --exit --format progress --format html:reports/chrome-report.html",
+    "test:bdd:firefox": "cross-env BROWSER=firefox cucumber-js --exit --format progress --format html:reports/firefox-report.html",
+    "test:bdd:webkit": "cross-env BROWSER=webkit cucumber-js --exit --format progress --format html:reports/webkit-report.html",
+    "test:bdd:chrome:headless": "cross-env BROWSER=chromium HEADLESS=true cucumber-js --exit --format progress --format html:reports/chrome-report.html --format json:reports/chrome-report.json",
+    "test:bdd:firefox:headless": "cross-env BROWSER=firefox HEADLESS=true cucumber-js --exit --format progress --format html:reports/firefox-report.html --format json:reports/firefox-report.json",
+    "test:bdd:webkit:headless": "cross-env BROWSER=webkit HEADLESS=true cucumber-js --exit --format progress --format html:reports/webkit-report.html --format json:reports/webkit-report.json",
     "test:bdd:all": "npm-run-all --parallel test:bdd:chrome test:bdd:firefox test:bdd:webkit"
   },
   "keywords": [],

@@ -1,4 +1,4 @@
 export const config = {
   baseURL: 'https://opensource-demo.orangehrmlive.com',
-  defaultTimeout: 5000
+  defaultTimeout: 30000
 };
