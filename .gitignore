@@ -8,3 +8,5 @@ node_modules/
 
 #Cucumber
 reports/
+screenshots/
+*.png
