@@ -1,85 +1,184 @@
 import { Given, When, Then } from '@cucumber/cucumber';
-import { expect } from '@playwright/test';
-import { SearchPage } from '../pages/search.page';
+import { chromium } from '@playwright/test';
 import { LoginPage } from '../pages/login.page';
+import { SearchPage } from '../pages/search.page';
 import { CustomWorld } from '../world/world';
+import { expect } from '@playwright/test';
 
-let loginPage: LoginPage;
-let searchPage: SearchPage;
+//
+// Background
+//
+Given(
+  'the user is logged in with account {string} password {string}',
+  async function (this: CustomWorld, username: string, password: string) {
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext();
+    this.page = await context.newPage();
 
-When('I navigate to the employee search page', async function (this: CustomWorld) {
-  if (!this.page) throw new Error('Page not initialized');
-  // Switch context from LoginPage to SearchPage after dashboard
-  searchPage = new SearchPage(this.page);
-  await searchPage.gotoSearchPage();
-});
+    const loginPage = new LoginPage(this.page);
+    await loginPage.goto();
+    await loginPage.enterUsername(username);
+    await loginPage.enterPassword(password);
+    await loginPage.clickLogin();
+    await loginPage.assertDashboardVisible();
 
+    // Khởi tạo SearchPage
+    this.searchPage = new SearchPage(this.page);
+  }
+);
+
+//
+// Name search
+//
 When('I search for employee with name {string}', async function (this: CustomWorld, name: string) {
-  await searchPage.searchByName(name);
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.searchByName(name);
 });
 
-When('I search for employee with ID {string}', async function (this: CustomWorld, id: string) {
-  await searchPage.searchById(id);
+//
+// ID search
+//
+When('I search for employee with ID {string}', async function (this: CustomWorld, empId: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.searchById(empId);
 });
 
-When('I search without entering any criteria', async function (this: CustomWorld) {
-  await searchPage.searchWithoutCriteria();
+//
+// Supervisor search
+//
+When('I search for employee with supervisor {string}', async function (this: CustomWorld, supervisor: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.searchBySupervisor(supervisor);
 });
 
-When('I search for employees with job title {string}', async function (this: CustomWorld, title: string) {
-  await searchPage.searchByJobTitle(title);
+//
+// Job title search
+//
+When('I search for employee with job title {string}', async function (this: CustomWorld, jobTitle: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.searchByJobTitle(jobTitle);
 });
 
-When('I search for employees with status {string}', async function (this: CustomWorld, status: string) {
-  await searchPage.searchByEmploymentStatus(status);
+//
+// Sub unit search
+//
+When('I search for employee in sub unit {string}', async function (this: CustomWorld, subUnit: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.searchBySubUnit(subUnit);
 });
 
-When('I search for employees with supervisor name {string}', async function (this: CustomWorld, supervisor: string) {
-  await searchPage.searchBySupervisor(supervisor);
+//
+// Combined filters
+//
+When(
+  'I search for employee with name {string} and job title {string} and sub unit {string}',
+  async function (this: CustomWorld, name: string, jobTitle: string, subUnit: string) {
+    if (!this.searchPage) throw new Error("SearchPage not initialized");
+    await this.searchPage.gotoSearchPage();
+    await this.searchPage.searchByMultipleFilters(name, jobTitle, subUnit);
+  }
+);
+
+//
+// No filters
+//
+When('I click the search button without entering any filters', async function (this: CustomWorld) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.clickSearch();
 });
 
-When('I search for employee with name {string} and job title {string}', async function (this: CustomWorld, name: string, title: string) {
-  await searchPage.searchByNameAndTitle(name, title);
+When('I click the search button without changing any filters', async function (this: CustomWorld) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  await this.searchPage.gotoSearchPage();
+  await this.searchPage.clickSearch();
 });
 
+//
+// Assertions
+//
 Then('I should see employee {string} in the results', async function (this: CustomWorld, name: string) {
-  const resultNames = await searchPage.getResultNames();
+  if (!this.page || !this.searchPage) throw new Error("Page or SearchPage not initialized");
+
+  // sleep 10s
+    await this.page.waitForTimeout(10000);
+
+  await this.page.waitForFunction(
+    (expectedName) => {
+      const cells = Array.from(document.querySelectorAll('.oxd-table-body .oxd-table-cell:nth-child(3)'));
+      return cells.some((cell) => cell.textContent?.trim() === expectedName);
+    },
+    name,
+    { timeout: 10000 }
+  );
+
+  const resultNames = await this.searchPage.getResultNames();
   expect(resultNames).toContain(name);
 });
 
-Then('I should see employee with ID {string} in the results', async function (this: CustomWorld, id: string) {
-  const resultIds = await searchPage.getResultIds();
-  expect(resultIds).toContain(id);
+Then('I shouldnt see employee {string} in the results', async function (this: CustomWorld, name: string) {
+    if (!this.page || !this.searchPage) throw new Error("Page or SearchPage not initialized");
+    
+    await this.page.waitForTimeout(10000);
+    
+    const resultNames = await this.searchPage.getResultNames();
+    expect(resultNames).not.toContain(name);
+    
+    const hasName = resultNames.some((n) => n.includes(name));
+    expect(hasName).toBe(false);
 });
 
-Then('I should see at least one employee with name containing {string}', async function (this: CustomWorld, namePart: string) {
-  const resultNames = await searchPage.getResultNames();
-  expect(resultNames.some(name => name.includes(namePart))).toBeTruthy();
+Then('I should see no results displayed', async function (this: CustomWorld) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  const resultsCount = await this.searchPage.getResultCount();
+  expect(resultsCount).toBe(0);
 });
 
-Then('I should see no search results', async function (this: CustomWorld) {
-  expect(await searchPage.isNoResultDisplayed()).toBeTruthy();
+Then('all results should have supervisor {string}', async function (this: CustomWorld, supervisor: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  const supervisors = await this.searchPage.getResultSupervisors();
+  expect(supervisors.every((s) => s === supervisor)).toBe(true);
 });
 
-Then('I should see all employees listed', async function (this: CustomWorld) {
-  expect(await searchPage.getResultCount()).toBeGreaterThan(0);
+Then('all results should have job title {string}', async function (this: CustomWorld, jobTitle: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  const jobTitles = await this.searchPage.getResultJobTitles();
+  expect(jobTitles.every((jt) => jt === jobTitle)).toBe(true);
 });
 
-Then('I should see only employees with job title {string}', async function (this: CustomWorld, title: string) {
-  const titles = await searchPage.getResultJobTitles();
-  expect(titles.every(t => t === title)).toBeTruthy();
+Then('all results should belong to sub unit {string}', async function (this: CustomWorld, subUnit: string) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  const subUnits = await this.searchPage.getResultSubUnits();
+  expect(subUnits.every((su) => su === subUnit)).toBe(true);
 });
 
-Then('I should see only employees with status {string}', async function (this: CustomWorld, status: string) {
-  const statuses = await searchPage.getResultStatuses();
-  expect(statuses.every(s => s === status)).toBeTruthy();
+Then(
+  'all results should match name {string} and job title {string} and sub unit {string}',
+  async function (this: CustomWorld, name: string, jobTitle: string, subUnit: string) {
+    if (!this.searchPage) throw new Error("SearchPage not initialized");
+    const names = await this.searchPage.getResultNames();
+    const jobTitles = await this.searchPage.getResultJobTitles();
+    const subUnits = await this.searchPage.getResultSubUnits();
+
+    expect(names.some((n) => n.includes(name))).toBe(true);
+    expect(jobTitles.every((jt) => jt === jobTitle)).toBe(true);
+    expect(subUnits.every((su) => su === subUnit)).toBe(true);
+  }
+);
+
+Then('the system should display all employees', async function (this: CustomWorld) {
+  if (!this.searchPage) throw new Error("SearchPage not initialized");
+  const count = await this.searchPage.getResultCount();
+  expect(count).toBeGreaterThan(0);
 });
 
-Then('I should see only employees whose supervisor is {string}', async function (this: CustomWorld, supervisor: string) {
-  const supervisors = await searchPage.getResultSupervisors();
-  expect(supervisors.every(s => s === supervisor)).toBeTruthy();
-});
-
-Then('I should see only matching employees', async function (this: CustomWorld) {
-  expect(await searchPage.getResultCount()).toBeGreaterThan(0);
+Then('I should see {string} alert', async function (this: CustomWorld, alertText: string) {
+  if (!this.page) throw new Error("Page not initialized");
+  const alert = this.page.locator('//span[text()="' + alertText + '"]');
+  await expect(alert).toBeVisible({ timeout: 5000 });
 });

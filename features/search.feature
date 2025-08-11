@@ -1,55 +1,75 @@
-Feature: Search functionality
+Feature: Employee Search
+
 
   Background:
-    Given the user is on the login page
-    When the user enters a valid username "Admin"
-    And the user enters a valid password "admin123"
-    And the user clicks the login button
-    Then the user should be redirected to the dashboard
-    When I navigate to the employee search page
+    Given the user is logged in with account "admin" password "admin123"
 
   @smoke @search
-  Scenario: Search by valid employee name
+  Scenario: Search by valid employee full name
+    When I search for employee with name "Rebecca Harmony"
+    Then I should see employee "Rebecca" in the results
 
-    When I search for employee with name "Linda Anderson"
-    Then I should see employee "Linda Anderson" in the results
+  @smoke @search
+  Scenario: Search by valid employee partial name
+    When I search for employee with name "Rebecca"
+    Then I should see employee "Rebecca" in the results
 
-#   @smoke @search
-#   Scenario: Search by valid employee ID
-#     When I search for employee with ID "0001"
-#     Then I should see employee with ID "0001" in the results
+  @regression @search @negative
+  Scenario: Search by name with extra spaces
+    When I search for employee with name "   Rebecca   Harmony   "
+    Then I shouldnt see employee "Rebecca" in the results
 
-#   @regression @search
-#   Scenario: Search by partial name
-#     When I search for employee with name "Linda"
-#     Then I should see at least one employee with name containing "Linda"
+  @regression @search
+  Scenario: Search by lowercase name
+    When I search for employee with name "rebecca harmony"
+    Then I should see employee "Rebecca" in the results
 
-#   @regression @search
-#   Scenario: Search for non-existent employee name
-#     When I search for employee with name "Non Existent User"
-#     Then I should see no search results
+  @regression @search
+  Scenario: Search for non-existing employee
+    When I search for employee with name "NoSuchName"
+    Then I should see no results displayed
 
-#   @regression
-#   Scenario: Search with empty search criteria
-#     When I search without entering any criteria
-#     Then I should see all employees listed
+  @regression @search
+  Scenario: Search by Employee ID
+    When I search for employee with ID "0363"
+    Then I should see employee "Christopher" in the results
 
-#   @regression
-#   Scenario: Search by job title
-#     When I search for employees with job title "QA Engineer"
-#     Then I should see only employees with job title "QA Engineer"
+  @regression @search
+  Scenario: Search by Sub Unit
+    When I search for employee in sub unit "Engineering"
+    Then all results should belong to sub unit "Engineering"
 
-#   @regression
-#   Scenario: Search by employment status
-#     When I search for employees with status "Full-Time Permanent"
-#     Then I should see only employees with status "Full-Time Permanent"
+  @regression @search
+  Scenario: Search by multiple filters combined
+    When I search for employee with name "Rebecca" and job title "QA Engineer" and sub unit "Quality Assurance"
+    Then all results should match name "Rebecca" and job title "QA Engineer" and sub unit "Quality Assurance"
 
-#   @regression
-#   Scenario: Search by supervisor name
-#     When I search for employees with supervisor name "John Smith"
-#     Then I should see only employees whose supervisor is "John Smith"
+  @regression @search
+  Scenario: Search with no filters
+    When I click the search button without entering any filters
+    Then the system should display all employees
 
-#   @regression
-#   Scenario: Search by combination of name and job title
-#     When I search for employee with name "Linda Anderson" and job title "Admin"
-#     Then I should see only matching employees
+  @edge @search
+  Scenario: Search with leading and trailing special characters
+    When I search for employee with name "***Rebecca Harmony###"
+    Then I shouldnt see employee "Rebecca" in the results
+
+  @edge @search
+  Scenario: Search with only spaces
+    When I search for employee with name "     "
+    Then I should see no results displayed
+
+  @edge @search
+  Scenario: Search with extremely long string
+    When I search for employee with name "o4W9uKJ6vbN7zE3cQxY2tP1LhM5rB8dA0fVgZsUjXlHnTqCpRyWeIkOmSaFbGcZdXyVwTuRqPoNmLkJiHgFfDdSsAaZzXxCcVvBbNnMmLlKkJjHhGgFfDdSsAaZzXxWwVvUuTtRrQqPpOoIiUuYyTtRrEeWwQqSsAaZzXxCcVvBbNnMmLlKkJjHhGgFfDdSsAaZzXxWwVvUuTtRrQqPpOoIiUuYyTtRrEeWwQq"
+    Then I should see "Should not exceed 100 characters" alert
+
+  @edge @search
+  Scenario: Search by mixed case name
+    When I search for employee with name "RebEcca hArmOny"
+    Then I should see employee "Rebecca" in the results
+
+  @edge @search1
+  Scenario: Search by partial last name
+    When I search for employee with name "Harmony"
+    Then I should see employee "Rebecca" in the results
