@@ -44,7 +44,7 @@ When('the user clicks the login button', async function () {
 
 Then('the user should be redirected to the dashboard', async function () {
   await loginPage.assertDashboardVisible();
-  await browser.close();
+  await page.screenshot({ path: 'screenshot.png' });
 });
 
 Then('an error message {string} should be displayed', async function (message: string) {

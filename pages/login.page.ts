@@ -11,6 +11,8 @@ export class LoginPage {
   }
 
   async enterUsername(username: string) {
+    // check if username field is visible before filling
+    await this.page.waitForSelector('input[name="username"]', { state: 'visible' });
     await this.page.fill('input[name="username"]', username);
   }
 
